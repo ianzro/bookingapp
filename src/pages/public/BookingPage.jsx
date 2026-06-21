@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, AlertTriangle } from 'lucide-react'
 import { useData } from '../../context/DataContext'
 import ServicePicker from '../../components/booking/ServicePicker'
 import ProviderPicker from '../../components/booking/ProviderPicker'
@@ -8,6 +8,7 @@ import DateTimePicker from '../../components/booking/DateTimePicker'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { formatDate, formatTime } from '../../utils/dateUtils'
+import { findDuplicatePatients } from '../../utils/duplicateDetect'
 
 const STEPS = ['Service', 'Provider', 'Date & Time', 'Your Details', 'Review']
 
@@ -201,6 +202,7 @@ export default function BookingPage() {
   const [patient, setPatient] = useState(emptyPatient)
   const [patientErrors, setPatientErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
+  const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false)
 
   function handleDateTimeSelect({ date: d, slot: s }) {
     setDate(d)
@@ -211,7 +213,11 @@ export default function BookingPage() {
     if (step === 0) return !!service
     if (step === 1) return !!provider
     if (step === 2) return !!date && !!slot
-    if (step === 3) return true
+    if (step === 3) {
+      const dupes = findDuplicatePatients(patients, { email: patient.email, mobile: patient.mobile })
+      if (dupes.length > 0 && !duplicateAcknowledged) return false
+      return true
+    }
     return true
   }
 
@@ -273,7 +279,34 @@ export default function BookingPage() {
     <ServicePicker key="svc" services={services} selectedId={service?.id} onSelect={setService} />,
     <ProviderPicker key="prov" providers={providers} selectedServiceId={service?.id} selectedId={provider?.id} onSelect={setProvider} />,
     <DateTimePicker key="dt" provider={provider} durationMinutes={service?.durationMinutes} selectedDate={date} selectedSlot={slot} onSelect={handleDateTimeSelect} />,
-    <PatientDetailsForm key="pat" value={patient} onChange={setPatient} errors={patientErrors} />,
+    (() => {
+      const dupes = patient.email || patient.mobile
+        ? findDuplicatePatients(patients, { email: patient.email, mobile: patient.mobile })
+        : []
+      return (
+        <div key="pat" className="space-y-4">
+          <PatientDetailsForm value={patient} onChange={p => { setPatient(p); setDuplicateAcknowledged(false) }} errors={patientErrors} />
+          {dupes.length > 0 && !duplicateAcknowledged && (
+            <div className="border border-brand-gold/50 bg-amber-50 rounded-xl p-4">
+              <div className="flex items-start gap-2 mb-2">
+                <AlertTriangle size={16} className="text-brand-gold mt-0.5 shrink-0" />
+                <p className="text-sm font-medium text-amber-800">Existing patient found</p>
+              </div>
+              <p className="text-xs text-amber-700 mb-3">
+                A patient with this email or mobile already exists:{' '}
+                <strong>{dupes[0].firstName} {dupes[0].lastName}</strong>. Your booking will be linked to their record.
+              </p>
+              <button
+                onClick={() => setDuplicateAcknowledged(true)}
+                className="text-xs font-semibold text-brand-teal hover:underline"
+              >
+                Got it, continue →
+              </button>
+            </div>
+          )}
+        </div>
+      )
+    })(),
     service && provider && date && slot
       ? <ReviewStep key="rev" service={service} provider={provider} date={date} slot={slot} patient={patient} />
       : null,
