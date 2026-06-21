@@ -15,7 +15,7 @@ export function dayKeyFromDate(dateStr) {
 
 export function dayLabel(key) { return DAY_LABELS[key] || key }
 export function dayShort(key) { return DAY_SHORT[key] || key }
-export { DAY_KEYS }
+export { DAY_KEYS, DAY_SHORT }
 
 export function formatDate(dateStr) {
   if (!dateStr) return ''

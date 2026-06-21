@@ -4,6 +4,8 @@ import AppShell from './components/layout/AppShell'
 import PublicLayout from './components/layout/PublicLayout'
 
 import LoginPage          from './pages/public/LoginPage'
+import BookingPage        from './pages/public/BookingPage'
+import ConfirmationPage   from './pages/public/ConfirmationPage'
 import DashboardPage      from './pages/admin/DashboardPage'
 import AppointmentsPage   from './pages/admin/AppointmentsPage'
 import ClinicProfilePage  from './pages/admin/ClinicProfilePage'
@@ -36,6 +38,10 @@ export default function App() {
         <Route element={<PublicLayout />}>
           <Route path="/login" element={<LoginPage />} />
         </Route>
+
+        {/* Public booking (no auth required) */}
+        <Route path="/book" element={<BookingPage />} />
+        <Route path="/book/confirmation/:id" element={<ConfirmationPage />} />
 
         {/* Admin (auth required) */}
         <Route path="/admin" element={<RequireAuth><AppShell /></RequireAuth>}>
