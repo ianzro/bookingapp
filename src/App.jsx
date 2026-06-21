@@ -1,6 +1,16 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
-import LoginPage from './pages/public/LoginPage'
+import AppShell from './components/layout/AppShell'
+import PublicLayout from './components/layout/PublicLayout'
+
+import LoginPage          from './pages/public/LoginPage'
+import DashboardPage      from './pages/admin/DashboardPage'
+import AppointmentsPage   from './pages/admin/AppointmentsPage'
+import ClinicProfilePage  from './pages/admin/ClinicProfilePage'
+import ServicesPage       from './pages/admin/ServicesPage'
+import ProvidersPage      from './pages/admin/ProvidersPage'
+import PatientsPage       from './pages/admin/PatientsPage'
+import NotFoundPage       from './pages/NotFoundPage'
 
 function RequireAuth({ children }) {
   const { currentUser } = useAuth()
@@ -8,32 +18,38 @@ function RequireAuth({ children }) {
   return children
 }
 
-function AdminPlaceholder() {
-  const { currentUser, logout } = useAuth()
-  return (
-    <div className="min-h-screen bg-brand-cream flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="font-display text-2xl text-brand-navy mb-2">Dashboard</h1>
-        <p className="text-brand-slate text-sm mb-6">Welcome, {currentUser?.name}</p>
-        <button
-          onClick={logout}
-          className="px-6 py-2 rounded-xl bg-brand-teal text-white text-sm font-semibold hover:bg-brand-teal-light transition"
-        >
-          Sign Out
-        </button>
-        <p className="mt-4 text-xs text-gray-400">Full dashboard coming in Milestone 2</p>
-      </div>
+function RequireRole({ role, children }) {
+  const { currentUser } = useAuth()
+  if (currentUser?.role !== role) return (
+    <div className="p-8 text-center text-brand-slate text-sm">
+      You don't have permission to view this page.
     </div>
   )
+  return children
 }
 
 export default function App() {
   return (
     <HashRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin/*" element={<RequireAuth><AdminPlaceholder /></RequireAuth>} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Public */}
+        <Route element={<PublicLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+        </Route>
+
+        {/* Admin (auth required) */}
+        <Route path="/admin" element={<RequireAuth><AppShell /></RequireAuth>}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard"    element={<DashboardPage />} />
+          <Route path="appointments" element={<AppointmentsPage />} />
+          <Route path="patients"     element={<PatientsPage />} />
+          <Route path="clinic"       element={<RequireRole role="admin"><ClinicProfilePage /></RequireRole>} />
+          <Route path="services"     element={<RequireRole role="admin"><ServicesPage /></RequireRole>} />
+          <Route path="providers"    element={<RequireRole role="admin"><ProvidersPage /></RequireRole>} />
+        </Route>
+
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </HashRouter>
   )
